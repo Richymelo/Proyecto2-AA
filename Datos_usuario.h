@@ -25,7 +25,7 @@ typedef struct {
     GtkBuilder *builder;
     DatosUsuario *datos;
 } DatosGenerales;
-
+// Se tienen todos los sorts
 typedef enum {
     SORT_BUBBLE,
     SORT_COCKTAIL,
@@ -38,7 +38,7 @@ typedef enum {
     SORT_GNOME,
     SORT_PANCAKE
 } SortType;
-
+// Estructura que maneja todos los valores que los sorts puedan ocupar
 typedef struct {
     int i, j;
     int n;
@@ -48,10 +48,10 @@ typedef struct {
     int index;
     int max_index;
     int phase;
-    int *temp;          // for merge sort
-    int temp_l, temp_r; // for merge ranges
-    int *stack;         // optional: manual recursion for quick sort
-    int top;            // stack pointer for quick sort
+    int *temp;          // para el merge sort
+    int temp_l, temp_r; // para los rangos de los arreglos del merge
+    int *stack;         // recursión para el quick sort
+    int top;            // puntero al stack del quick sort
     DatosUsuario *datos;
     SortType current_algorithm;
 } SortState;

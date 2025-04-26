@@ -46,7 +46,7 @@ void desplegar_datos_nuevos(GtkButton *button, gpointer user_data) {
     GtkBuilder *builder = general->builder;
     DatosUsuario *datos = general->datos;
 
-    // Read user inputs
+    // Leer lo que el usuario ingresó
     GtkWidget *cantidad_rayos = GTK_WIDGET(gtk_builder_get_object(builder, "cantidad_rayos"));
     int N = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(cantidad_rayos));
 
@@ -61,7 +61,7 @@ void desplegar_datos_nuevos(GtkButton *button, gpointer user_data) {
     GtkWidget *segundo_color = GTK_WIDGET(gtk_builder_get_object(builder, "color_2"));
     gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(segundo_color), &color_2);
 
-    // Create one master array
+    // Create un arreglo principal
     int *master_array = malloc(sizeof(int) * k);
     if (!master_array) {
         GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
@@ -75,7 +75,7 @@ void desplegar_datos_nuevos(GtkButton *button, gpointer user_data) {
         master_array[i] = i + 1;
     }
 
-    // Set order for master array
+    // Ordenar los valores del arreglo principal
     GtkWidget *radio_ascendente = GTK_WIDGET(gtk_builder_get_object(builder, "orden_ascendente"));
     GtkWidget *radio_descendente = GTK_WIDGET(gtk_builder_get_object(builder, "orden_descendente"));
     GtkWidget *radio_aleatorio = GTK_WIDGET(gtk_builder_get_object(builder, "orden_aleatorio"));
@@ -85,11 +85,10 @@ void desplegar_datos_nuevos(GtkButton *button, gpointer user_data) {
             master_array[i] = k - i;
         }
     } else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radio_aleatorio))) {
-        barajar_datos(master_array, k); // <<<<< shuffle ONCE
+        barajar_datos(master_array, k);
     }
-    // else ascending is already filled in
 
-    // Now copy master_array into all 4 datos
+    // Copiar datos para cada círculo
     for (int idx = 0; idx < 4; idx++) {
         datos[idx].N = N;
         datos[idx].k = k;
@@ -98,12 +97,12 @@ void desplegar_datos_nuevos(GtkButton *button, gpointer user_data) {
         datos[idx].iterations = 0;
         datos[idx].swaps = 0;
 
-        // Free previous D
+        // Liberar memoria antigua
         if (datos[idx].D != NULL) {
             free(datos[idx].D);
         }
 
-        // Allocate new D
+        // Alocar nueva memoria
         datos[idx].D = malloc(sizeof(int) * k);
         if (datos[idx].D == NULL) {
             GtkWidget *dialog = gtk_message_dialog_new(NULL, GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
@@ -114,18 +113,18 @@ void desplegar_datos_nuevos(GtkButton *button, gpointer user_data) {
             return;
         }
 
-        // Copy from master
+        // Copiar el arreglo principal
         for (int i = 0; i < k; i++) {
             datos[idx].D[i] = master_array[i];
         }
-
+        // Poner la bandera del arreglo copia en falso
         datos[idx].usar_copia = FALSE;
     }
 
-    // Free master array
+    // Liberar memoria del arreglo principal
     free(master_array);
 
-    // Queue redraw for all 4 areas
+    // Dibujar los 4 círculos
     for (int idx = 0; idx < 4; idx++) {
         gtk_widget_queue_draw(datos[idx].area);
     }
@@ -136,7 +135,7 @@ void desplegar_datos_iniciales(GtkButton *button, gpointer user_data) {
     GtkBuilder *builder = general->builder;
     DatosUsuario *datos = general->datos;
 
-    // Save the two colors
+    // Guardar los dos colores
     GdkRGBA color_1;
     GtkWidget *primer_color = GTK_WIDGET(gtk_builder_get_object(builder, "color_1"));
     gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(primer_color), &color_1);
@@ -145,26 +144,21 @@ void desplegar_datos_iniciales(GtkButton *button, gpointer user_data) {
     GtkWidget *segundo_color = GTK_WIDGET(gtk_builder_get_object(builder, "color_2"));
     gtk_color_chooser_get_rgba(GTK_COLOR_CHOOSER(segundo_color), &color_2);
 
-    // Update all 4 DatosUsuario
+    // Modificar los datos de los círculos
     for (int i = 0; i < 4; i++) {
         datos[i].usar_copia = FALSE;
         datos[i].color_1 = color_1;
         datos[i].color_2 = color_2;
         datos[i].iterations = 0;
         datos[i].swaps = 0;
+        // DIbujar el área
+        gtk_widget_queue_draw(datos[i].area);
     }
 
-    // Redraw all 4 areas
-    gtk_widget_queue_draw(datos[0].area);
-    gtk_widget_queue_draw(datos[1].area);
-    gtk_widget_queue_draw(datos[2].area);
-    gtk_widget_queue_draw(datos[3].area);
-
-    // OPTIONAL (maybe not even needed now):
     while (gtk_events_pending()) {
         gtk_main_iteration();
     }
-    g_usleep(500000);  // Optional delay for visual smoothness
+    g_usleep(500000);  // Para ver el cambio
 }
 // Crea la lista de colores que va a corresponder a los rayos
 void colorLinea(int *D, int cElementosV, int color1[3], int color2[3], int colores[][3]) {
@@ -174,30 +168,33 @@ void colorLinea(int *D, int cElementosV, int color1[3], int color2[3], int color
 		}
 	}
 }
-void* sorting_thread_function(void* arg) {
+// Aquí el thread escoge el sort
+void* sorting_threads(void* arg) {
+    // Datos de un círculo
     DatosUsuario* datos = (DatosUsuario*)arg;
-
+    // Crea memoria para la estructura que va a guardar todos los datos
+    // necesarios para todos los sorts
     SortState *state = malloc(sizeof(SortState));
     if (!state) {
         printf("Error allocating SortState\n");
         pthread_exit(NULL);
     }
 
-    // Initialize state
-    memset(state, 0, sizeof(SortState));  // Initialize everything to zero
+    // Inicializar datos
+    memset(state, 0, sizeof(SortState));  // Inicializa todo en 0
     state->n = datos->k;
     state->datos = datos;
-    state->gap = datos->k / 2;    // for shell sort
-    state->low = 0;               // for merge
-    state->start = 0;             // for cocktail
-    state->end = datos->k - 1;    // for cocktail
-    state->index = 0;             // for gnome sort
-    state->temp = NULL;           // for merge
-    state->stack = NULL;          // for quick sort
+    state->gap = datos->k / 2;    // para el shell
+    state->low = 0;               // para el merge
+    state->start = 0;             // para el cocktail
+    state->end = datos->k - 1;    // para el cocktail
+    state->index = 0;             // para el gnome
+    state->temp = NULL;           // para el merge
+    state->stack = NULL;          // para el quick sort
     state->top = -1;
-    state->phase = 0;             // used by some sorts
+    state->phase = 0;             // Usado por algunos sorts
 
-    // Decide which sort
+    // Se escoge el sort
     if (strcmp(datos->algoritmo, "Bubble Sort") == 0) {
         state->current_algorithm = SORT_BUBBLE;
     } else if (strcmp(datos->algoritmo, "Cocktail Sort") == 0) {
@@ -206,7 +203,7 @@ void* sorting_thread_function(void* arg) {
         state->current_algorithm = SORT_EXCHANGE;
     } else if (strcmp(datos->algoritmo, "Selection Sort") == 0) {
         state->current_algorithm = SORT_SELECTION;
-        state->max_index = 0; // for selection
+        state->max_index = 0; // Para selection
     } else if (strcmp(datos->algoritmo, "Insertion Sort") == 0) {
         state->current_algorithm = SORT_INSERTION;
     } else if (strcmp(datos->algoritmo, "Merge Sort") == 0) {
@@ -220,14 +217,14 @@ void* sorting_thread_function(void* arg) {
     } else if (strcmp(datos->algoritmo, "Pancake Sort") == 0) {
         state->current_algorithm = SORT_PANCAKE;
     } else {
-        printf("Error: unknown algorithm '%s'\n", datos->algoritmo);
+        printf("Error: algoritmo desconocido '%s'\n", datos->algoritmo);
         free(state);
         pthread_exit(NULL);
     }
 
-    // Start sorting with sort_step
+    // Se empieza el paso del algoritmo
     g_idle_add(sort_step, state);
-
+    // Se termina el thread
     pthread_exit(NULL);
 }
 // Ordenar datos
@@ -237,11 +234,12 @@ void sort(GtkButton *button, gpointer user_data) {
 
     pthread_t threads[4];
 
-    // Reset usar_copia
-    for (int i = 0; i < 4; i++) {
-        general->datos[i].usar_copia = FALSE;
+    desplegar_datos_iniciales(button, general);
+    while (gtk_events_pending()) {
+        gtk_main_iteration();
     }
-    
+    g_usleep(500000);  // Para ver el cambio
+    // Combobox de todos los círculos
     GtkWidget *algos_ordenamiento1 = GTK_WIDGET(gtk_builder_get_object(builder, "lista_algos1"));
     GtkWidget *algos_ordenamiento2 = GTK_WIDGET(gtk_builder_get_object(builder, "lista_algos2"));
     GtkWidget *algos_ordenamiento3 = GTK_WIDGET(gtk_builder_get_object(builder, "lista_algos3"));
@@ -251,7 +249,7 @@ void sort(GtkButton *button, gpointer user_data) {
     const char *algo_seleccionado2 = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(algos_ordenamiento2));
     const char *algo_seleccionado3 = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(algos_ordenamiento3));
     const char *algo_seleccionado4 = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(algos_ordenamiento4));
-    // Create copies of the initial data for each DatosUsuario
+    // Crear la copia de los datos en todos los círculos
     for (int i = 0; i < 4; i++) {
         if (general->datos[i].copia_datos != NULL) {
             free(general->datos[i].copia_datos);
@@ -265,21 +263,21 @@ void sort(GtkButton *button, gpointer user_data) {
     
         general->datos[i].usar_copia = TRUE;
     }
-    // Assign the selected algorithms
+    // Asignar a cual círculo le tocó cual algoritmo
     strcpy(general->datos[0].algoritmo, algo_seleccionado1);
     strcpy(general->datos[1].algoritmo, algo_seleccionado2);
     strcpy(general->datos[2].algoritmo, algo_seleccionado3);
     strcpy(general->datos[3].algoritmo, algo_seleccionado4);
 
-    // Now launch threads for each DatosUsuario
+    // Se crean los threads
     for (int i = 0; i < 4; i++) {
-        pthread_create(&threads[i], NULL, sorting_thread_function, &general->datos[i]);
+        pthread_create(&threads[i], NULL, sorting_threads, &general->datos[i]);
     }
 
     for (int i = 0; i < 4; i++) {
         pthread_join(threads[i], NULL);
     }
-
+    // Liberar memoria de los algoritmos seleccionados del combo box
     g_free((gpointer)algo_seleccionado1);
     g_free((gpointer)algo_seleccionado2);
     g_free((gpointer)algo_seleccionado3);
@@ -357,34 +355,34 @@ gboolean dibujar_area(GtkWidget *area, cairo_t *cr, gpointer user_data) {
     // Dibujar contador de iteración
     char iteration_text[50];
     snprintf(iteration_text, sizeof(iteration_text), "Iteraciones: %d", datos->iterations);
-    cairo_move_to(cr, width - 100, height - 20);  // Adjust 180 to fit your text
+    cairo_move_to(cr, width - 100, height - 20);
     cairo_show_text(cr, iteration_text);
 
     // Dibujar contador de intercambios
     char swap_text[50];
     snprintf(swap_text, sizeof(swap_text), "Intercambios: %d", datos->swaps);
-    cairo_move_to(cr, width - 100, height - 10);  // Adjust 180 to fit your text
+    cairo_move_to(cr, width - 100, height - 10);
     cairo_show_text(cr, swap_text);
 
     return FALSE;
 }
 
 int main(int argc, char *argv[]) {
-    GtkBuilder *builder;        // Utilizado para obtener los objetos de glade
-    GtkWidget *ventana;         // La ventana
+    GtkBuilder *builder;         // Utilizado para obtener los objetos de glade
+    GtkWidget *ventana;          // La ventana
     GtkWidget *area_circulo1;    // El área donde se dibuja el círculo 1
     GtkWidget *area_circulo2;    // El área donde se dibuja el círculo 2
     GtkWidget *area_circulo3;    // El área donde se dibuja el círculo 3
     GtkWidget *area_circulo4;    // El área donde se dibuja el círculo 4
-    GtkWidget *panel;           // El panel que divide el área de dibujo y el área de interacción
-    GtkWidget *boton_salida;    // Botón para terminar el programa
-    GtkWidget *boton_desplegar_nuevos; // Botón para mostrar datos nuevos
+    GtkWidget *panel;            // El panel que divide el área de dibujo y el área de interacción
+    GtkWidget *boton_salida;     // Botón para terminar el programa
+    GtkWidget *boton_desplegar_nuevos;    // Botón para mostrar datos nuevos
     GtkWidget *boton_desplegar_iniciales; // Botón para mostrar los datos originales
-    GtkWidget *boton_sort;      // Botón para ordenar los datos
-    GtkWidget *cantidad_rayos;  // Espacio para ingresar cantidad de rayos N
-    GtkWidget *cantidad_datos;  // Espacio para ingresar la cantidad de datos k
-    GtkWidget *color_1;         // Primer color escogido
-    GtkWidget *color_2;         // Segundo color escogido
+    GtkWidget *boton_sort;       // Botón para ordenar los datos
+    GtkWidget *cantidad_rayos;   // Espacio para ingresar cantidad de rayos N
+    GtkWidget *cantidad_datos;   // Espacio para ingresar la cantidad de datos k
+    GtkWidget *color_1;          // Primer color escogido
+    GtkWidget *color_2;          // Segundo color escogido
 
     srand(time(NULL));  // Para poder utilizar rand() al barajar los números
     gtk_init(&argc, &argv);
@@ -392,14 +390,14 @@ int main(int argc, char *argv[]) {
     // Cargar la interfaz de Glade
     builder = gtk_builder_new_from_file("interfaz.glade");
 
-    // Se asigna memoria para la estructura de DatosUsuario
+    // Se asigna memoria para la estructura de DatosUsuario para los 4 círculos
     DatosUsuario *datos = malloc(4 * sizeof(DatosUsuario));
     if (!datos) {
         fprintf(stderr, "No se pudo asignar memoria dinámica.\n");
         return EXIT_FAILURE;
     }
 
-    // Initialize each DatosUsuario
+    // Inicializar los datos para cada círculo
     for (int i = 0; i < 4; i++) {
         datos[i].D = NULL;
         datos[i].copia_datos = NULL;
@@ -433,19 +431,19 @@ int main(int argc, char *argv[]) {
     // El círculo 1
     area_circulo1 = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo1"));
     g_signal_connect(area_circulo1, "draw", G_CALLBACK(dibujar_area), &datos[0]);
-    datos[0].area = area_circulo1;   // <<< ASSIGN it!
+    datos[0].area = area_circulo1;
     // El círculo 2
     area_circulo2 = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo2"));
     g_signal_connect(area_circulo2, "draw", G_CALLBACK(dibujar_area), &datos[1]);
-    datos[1].area = area_circulo2;   // <<< ASSIGN it!
+    datos[1].area = area_circulo2;
     // El círculo 3
     area_circulo3 = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo3"));
     g_signal_connect(area_circulo3, "draw", G_CALLBACK(dibujar_area), &datos[2]);
-    datos[2].area = area_circulo3;   // <<< ASSIGN it!
+    datos[2].area = area_circulo3;
     // El círculo 4
     area_circulo4 = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo4"));
     g_signal_connect(area_circulo4, "draw", G_CALLBACK(dibujar_area), &datos[3]);
-    datos[3].area = area_circulo4;   // <<< ASSIGN it!
+    datos[3].area = area_circulo4;
     // Botón para desplegar los datos nuevos
     boton_desplegar_nuevos = GTK_WIDGET(gtk_builder_get_object(builder, "boton_desplegar_nuevos"));
     g_signal_connect(boton_desplegar_nuevos, "clicked", G_CALLBACK(desplegar_datos_nuevos), general);

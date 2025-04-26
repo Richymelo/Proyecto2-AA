@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-// --- Sort Step Function Prototypes ---
+// Para que el compilador sepa que existen estas funciones
 gboolean bubble_sort_step(SortState *state);
 gboolean cocktail_sort_step(SortState *state);
 gboolean exchange_sort_step(SortState *state);
@@ -21,8 +21,6 @@ gboolean quick_sort_step(SortState *state);
 gboolean shell_sort_step(SortState *state);
 gboolean gnome_sort_step(SortState *state);
 gboolean pancake_sort_step(SortState *state);
-
-// --- Helper Function Prototype ---
 const char* sort_type_to_string(SortType type);
 
 
@@ -32,30 +30,27 @@ void swap(int *a, int *b) {
     *a = *b;
     *b = temp;
 }
-void area_inicial(){
-    // Para poder ver el cambio en el circulo
-    while (gtk_events_pending()) {
-        gtk_main_iteration();  // Procesar los eventos de GTK
-    }
-    g_usleep(500000);  // Delay para ver cambios
+void delay(){
+    //g_usleep(1);  // Delay para ver cambios
 }
-
+// Pedirle a GTK que vuelva a dibujar el círculo
 gboolean safe_redraw(gpointer data) {
     GtkWidget *widget = GTK_WIDGET(data);
     if (widget != NULL) {
         gtk_widget_queue_draw(widget);
     }
-    return FALSE;  // only run once
+    return FALSE;  // Se corre solo una vez
 }
+// Hacer el sort paso a paso para que se pueda mostrar en pantalla
 gboolean sort_step(gpointer user_data) {
     SortState *state = (SortState *)user_data;
 
     if (state == NULL || state->datos == NULL) {
         return FALSE;
     }
-
+    // Bandera para saber si ya se terminó
     gboolean still_sorting = FALSE;
-
+    // Usar el sort escogido
     switch (state->current_algorithm) {
         case SORT_BUBBLE:
             still_sorting = bubble_sort_step(state);
@@ -88,13 +83,12 @@ gboolean sort_step(gpointer user_data) {
             still_sorting = pancake_sort_step(state);
             break;
     }
-
+    // Se termina el sort
     if (!still_sorting) {
-        // Finished sorting!
-
+        // Dibujar en la pantalla
         g_idle_add(safe_redraw, state->datos->area);
 
-        // Optional: show a GTK message
+        // Se menciona el sort que acaba de terminar
         GtkWidget *dialog = gtk_message_dialog_new(NULL,
             GTK_DIALOG_MODAL,
             GTK_MESSAGE_INFO,
@@ -104,16 +98,17 @@ gboolean sort_step(gpointer user_data) {
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
 
-        // Free memory
+        // Se libera la memoria
         if (state->temp) free(state->temp);
         if (state->stack) free(state->stack);
         free(state);
 
-        return FALSE; // No more steps needed
+        return FALSE; // No hay nada más que hacer
     }
 
-    return TRUE; // Continue sorting
+    return TRUE; // Se continua con el sort
 }
+// Para escribir en la caja de dialogo de cuando termina un sort
 const char* sort_type_to_string(SortType type) {
     switch (type) {
         case SORT_BUBBLE: return "Bubble Sort";
@@ -133,109 +128,136 @@ const char* sort_type_to_string(SortType type) {
 // BUBBLE SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es el if, que es una probabilidad.
+// Intercambia un par y se mueve al siguiente.
 // - - - - -
 gboolean bubble_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->i >= state->n - 1) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
+        // No ha terminado
         if (state->j < state->n - state->i - 1) {
+            // Incrementar contador de iteraciones
             state->datos->iterations++;
             if (arr[state->j] < arr[state->j + 1]) {
                 swap(&arr[state->j], &arr[state->j + 1]);
+                // Incrementar contador de intercambios
                 state->datos->swaps++;
             }
+            // i y j son los loops
             state->j++;
         } else {
             state->j = 0;
             state->i++;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua con el sort
 }
 // - - - - -
 // COCKTAIL SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es el if, que es una probabilidad.
+// Como el bubble sort pero por delante y por detrás.
 // - - - - -
 gboolean cocktail_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->start >= state->end) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
-        if (state->phase == 0) { // Forward phase
+        // No ha terminado
+        if (state->phase == 0) { // Se mueve a través del arreglo hacia adelante
+            // Si no se ha llegado al final
             if (state->i < state->end) {
+                // Se incrementa contador de iteraciones
                 state->datos->iterations++;
                 if (arr[state->i] < arr[state->i + 1]) {
                     swap(&arr[state->i], &arr[state->i + 1]);
+                    // Se incrementa contador de intercambios
                     state->datos->swaps++;
                 }
                 state->i++;
             } else {
                 state->end--;
                 state->i = state->end - 1;
-                state->phase = 1; // switch to backward
+                state->phase = 1; // Ahora se mueve hacia atrás en el arreglo
             }
-        } else { // Backward phase
+        } else { // Se va moviendo desde el final al inicio
             if (state->i >= state->start) {
+                // Se incrementa el contador de iteraciones
                 state->datos->iterations++;
                 if (arr[state->i] < arr[state->i + 1]) {
                     swap(&arr[state->i], &arr[state->i + 1]);
+                    // Se incrementa el contador de swaps
                     state->datos->swaps++;
                 }
                 state->i--;
             } else {
                 state->start++;
                 state->i = state->start;
-                state->phase = 0; // switch to forward
+                state->phase = 0; // Se vuelve a empezar desde el inicio
             }
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua con el sort
 }
 // - - - - -
 // EXCHANGE SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es el if, que es una probabilidad.
+// Se prueban todos con el primer elemento y se van intercambiando.
 // - - - - -
 gboolean exchange_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->i >= state->n - 1) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
+        // No ha terminado
         if (state->j < state->n) {
+            // se incrementa el contador de iteraciones
             state->datos->iterations++;
             if (arr[state->i] < arr[state->j]) {
                 swap(&arr[state->i], &arr[state->j]);
+                // Se incrementa el contador de intercambios
                 state->datos->swaps++;
             }
             state->j++;
@@ -243,78 +265,97 @@ gboolean exchange_sort_step(SortState *state) {
             state->i++;
             state->j = state->i + 1;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua con el sort
 }
 // - - - - -
 // SELECTION SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es (n-1), ya que se hace solo un intercambio por número.
+// Se busca el mayor número de todos y se intercambia.
 // - - - - -
 gboolean selection_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->i >= state->n - 1) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
+        // No ha terminado
         if (state->j < state->n) {
+            // Se incrementa el contador de iteraciones
             state->datos->iterations++;
-            if (arr[state->j] > arr[state->max_index]) { // descending order
+            if (arr[state->j] > arr[state->max_index]) {
+                // Se busca el número más grande
                 state->max_index = state->j;
             }
             state->j++;
         } else {
-            swap(&arr[state->i], &arr[state->max_index]);
-            state->datos->swaps++;
+            if (state->i != state->max_index) {
+                swap(&arr[state->i], &arr[state->max_index]);
+                // Se incrementa el contador de swaps
+                state->datos->swaps++;
+            }
 
             state->i++;
             state->j = state->i + 1;
             state->max_index = state->i;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua con el sort
 }
 // - - - - -
 // INSERTION SORT
 // Iteraciones es total del for loop y el while. Iteraciones = (n-1) + intercambios.
 // Intercambios es el while, que es una probabilidad.
+// Se va ordenando el arreglo conforme se va recorriendo.
 // - - - - -
 gboolean insertion_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->i >= state->n) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
+        // No ha terminado
         if (state->phase == 0) {
-            // Start insertion
+            // Empezar inserción
             state->max_index = arr[state->i];
             state->j = state->i - 1;
             state->phase = 1;
         } else if (state->phase == 1) {
-            // Move backwards
+            // Se mueve para atrás buscando el lugar correcto del número
             if (state->j >= 0 && arr[state->j] < state->max_index) {
                 arr[state->j + 1] = arr[state->j];
+                // Se incrementa contador de iteraciones
                 state->datos->iterations++;
+                // Se incrementa contador de intercambios
                 state->datos->swaps++;
                 state->j--;
             } else {
@@ -323,54 +364,62 @@ gboolean insertion_sort_step(SortState *state) {
                 state->phase = 0;
             }
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua con el sort
 }
 // - - - - -
 // MERGE SORT
 // Iteraciones es total de los for loops y whiles.
 // Total = for loops para copiar datos + whiles para combinar los arreglos
 // Intercambios es el if, que es una probabilidad.
+// Se va dividiendo el arreglo en mitades recursivamente.
 // - - - - -
 gboolean merge_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
-    int steps_per_frame = 300;
-
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
+    int steps_per_frame = 1;
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
-    // Initialize temp array if not yet done
+    // Se inicializa el arreglo temporal
     if (state->temp == NULL) {
         state->temp = malloc(sizeof(int) * state->n);
         if (!state->temp) {
-            printf("Error allocating temp array for merge sort\n");
+            printf("Error creando memoria para el arreglo temp del merge sort\n");
             return FALSE;
         }
-        // Start merging subarrays of size 1
+        // Condición piso
         state->gap = 1;
     }
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->gap >= state->n) {
-            // Finished merging all
+            // Se terminó el merge
             return FALSE;
         }
 
         if (state->low >= state->n - 1) {
-            // Finished one full pass for current gap size
+            // Una vez que se terminaron de combinar los arreglos, seguir a los
+            // siguientes más grandes
             state->gap *= 2;
             state->low = 0;
         } else {
+            // Buscar el medio y el punto más alto
             int mid = MIN(state->low + state->gap - 1, state->n - 1);
             int high = MIN(state->low + 2 * state->gap - 1, state->n - 1);
 
-            // Merge arr[low..mid] and arr[mid+1..high] into temp
+            // Hacer el merge en temp
             int i = state->low, j = mid + 1, k = state->low;
             while (i <= mid && j <= high) {
+                // Incrementar el contador de iteraciones
                 state->datos->iterations++;
                 if (arr[i] >= arr[j]) {
                     state->temp[k++] = arr[i++];
@@ -378,6 +427,7 @@ gboolean merge_sort_step(SortState *state) {
                     state->temp[k++] = arr[j++];
                 }
             }
+            // Si se terminó una parte, copiar el resto
             while (i <= mid) {
                 state->datos->iterations++;
                 state->temp[k++] = arr[i++];
@@ -387,169 +437,202 @@ gboolean merge_sort_step(SortState *state) {
                 state->temp[k++] = arr[j++];
             }
 
-            // Copy back into arr
+            // Copiar otra vez en el arreglo
             for (i = state->low; i <= high; i++) {
                 arr[i] = state->temp[i];
                 state->datos->swaps++;
+                // Se vuelve a dibujar la pantalla
+                g_idle_add(safe_redraw, state->datos->area);
+                delay(); // Por si se quiere apreciar más los swaps
             }
-            g_idle_add(safe_redraw, state->datos->area);
-
+            //Pasar al siguiente arreglo para hacer el merge
             state->low += 2 * state->gap;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE;
+    return TRUE; // Se continua el sort
 }
 // - - - - -
 // QUICK SORT
 // Iteraciones es total de los for loops y whiles.
 // Intercambios es el if, que es una probabilidad.
+// Se escoge un pivote y se va dividiendo el arreglo recursivamente con base
+// en esto.
 // - - - - -
 gboolean quick_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
-    int steps_per_frame = 300;
-
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
+    int steps_per_frame = 1;
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
-    // Initialize stack if needed
+    // Se inicializa el stack
     if (state->stack == NULL) {
-        state->stack = malloc(sizeof(int) * 2 * state->n); // (low, high) pairs
+        // Parejas de números que son los tamaños del arreglo
+        state->stack = malloc(sizeof(int) * 2 * state->n);
         if (!state->stack) {
-            printf("Error allocating stack for quicksort\n");
+            printf("Error creando memoria para el stack del quicksort\n");
             return FALSE;
         }
+        // Tener vacío el stack
         state->top = -1;
 
-        // Push full array onto stack
-        state->stack[++state->top] = 0;       // low
-        state->stack[++state->top] = state->n - 1; // high
+        // Push del arreglo al stack
+        state->stack[++state->top] = 0;       // primera posición
+        state->stack[++state->top] = state->n - 1; // última posición
     }
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->top < 0) {
-            return FALSE; // Stack empty => finished
+            return FALSE; // Stack está vacía entonces se terminó el sort
         }
 
-        // Pop high and low
+        // Obtener el par de números que son los extremos del arreglo
         int high = state->stack[state->top--];
         int low = state->stack[state->top--];
-
+        // La partición de los elementos
         if (low < high) {
+            // Se escoge el primer elemento como el pivote
             int pivot = arr[low];
+            // Elementos mayores que el pivote
             int i = low;
-
+            // Separar elementos como mayores y menores que el pivote
             for (int j = low + 1; j <= high; j++) {
                 state->datos->iterations++;
-                if (arr[j] > pivot) { // Descending
+                if (arr[j] > pivot) {
                     i++;
                     swap(&arr[i], &arr[j]);
+                    // Incrementar el contador de intercambios
                     state->datos->swaps++;
                 }
             }
+            // Poner el pivote en el lugar correcto
             swap(&arr[low], &arr[i]);
+            // Incrementar el contador de intercambios
             state->datos->swaps++;
 
-            // Push right subarray
+            // Se ingresan los arreglos más pequeños en el stack
             state->stack[++state->top] = i + 1;
             state->stack[++state->top] = high;
 
-            // Push left subarray
             state->stack[++state->top] = low;
             state->stack[++state->top] = i - 1;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE;
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua el sort
 }
-
 // - - - - -
 // SHELL SORT
 // Iteraciones es total de los for loops.
 // Intercambios están en el tercer for loop.
+// Muy parecido al insertion sort solo que
 // - - - - -
 gboolean shell_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->gap == 0) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
+        // No ha terminado
         if (state->i < state->n) {
+            // Se tiene el número que se quiere colocar
             int temp = arr[state->i];
             int j = state->i;
-
-            while (j >= state->gap && arr[j - state->gap] < temp) { // descending
+            // Ir moviendo los elementos que se encuentran que son mayores
+            while (j >= state->gap && arr[j - state->gap] < temp) {
                 arr[j] = arr[j - state->gap];
                 j -= state->gap;
+                // Se incrementa el contador de iteraciones
                 state->datos->iterations++;
+                // Se incrementa el contador de intercambios
                 state->datos->swaps++;
             }
+            // Se coloca el valor en el espacio correcto
             arr[j] = temp;
-
+            // Se busca el siguiente elemento
             state->i++;
         } else {
+            // Se decrementa el espacio que se toma
             state->gap /= 2;
             state->i = state->gap;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua el sort
 }
 // - - - - -
 // GNOME SORT
 // Iteraciones es el loop del while.
 // Intercambios son un if, entonces es una probabilidad.
+// Cuando hay un intercambio se devuelve a la posición anterior.
 // - - - - -
 gboolean gnome_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->index >= state->n) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
+        // No ha terminado
         if (state->index == 0) {
             state->index++;
         } else if (arr[state->index] <= arr[state->index - 1]) {
             state->index++;
         } else {
             swap(&arr[state->index], &arr[state->index - 1]);
+            // Se incrementa el contador de intercambios
             state->datos->swaps++;
+            // Se incrementa el contador de iteraciones
             state->datos->iterations++;
             state->index--;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua el sort
 }
 // - - - - -
 // PANCAKE SORT
 // Iteraciones son los for loops y el loop del while.
 // Intercambios están en la función flip.
 // - - - - -
-void flip_array(int *arr, int idx, DatosUsuario *datos) {
+// Se le da la vuelta al arreglo para que el digito que va primero quede de último 
+void flip_array(int *arr, int idx, DatosUsuario *datos, SortState *state) {
     int start = datos->k - 1;
     int temp;
     while (start > idx) {
@@ -558,26 +641,36 @@ void flip_array(int *arr, int idx, DatosUsuario *datos) {
         arr[start] = temp;
         start--;
         idx++;
+        // Se incrementa el contador de iteraciones
         datos->iterations++;
+        // Se incrementa el contador de intercambios
         datos->swaps++;
+        // Se vuelve a dibujar la pantalla
+        g_idle_add(safe_redraw, state->datos->area);
+        delay(); // Por si se quiere apreciar más los swaps
     }
 }
 gboolean pancake_sort_step(SortState *state) {
+    // Para usar el arreglo adecuado
     int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    // Cantidad de pasos que se han hecho
     int steps = 0;
+    // Cantidad de pasos necesarios antes de refrescar la pantalla
     int steps_per_frame = 1;
-
+    // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
-
+    // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
+    // la pantalla
     while (steps < steps_per_frame) {
         if (state->i >= state->n) {
-            return FALSE; // finished
+            return FALSE; // Ya terminó
         }
-
+        // No ha terminado
         if (state->phase == 0) {
-            // Find the max index in the current subarray
+            // Encontrar el número más grande
             state->max_index = state->i;
             for (int j = state->i; j < state->n; j++) {
+                // Incrementar el contador de iteraciones
                 state->datos->iterations++;
                 if (arr[j] > arr[state->max_index]) {
                     state->max_index = j;
@@ -585,18 +678,20 @@ gboolean pancake_sort_step(SortState *state) {
             }
             state->phase = 1;
         } else if (state->phase == 1) {
-            // Bring max to end
+            // Llevar el número al final y después al inicio
             if (state->max_index != state->i) {
-                flip_array(arr, state->max_index, state->datos);
-                flip_array(arr, state->i, state->datos);
+                flip_array(arr, state->max_index, state->datos, state);
+                flip_array(arr, state->i, state->datos, state);
             }
+            // Se sigue con el siguiente valor
             state->i++;
             state->phase = 0;
         }
-
+        // Se ha llegado al final de un paso
         steps++;
     }
-
+    // Se vuelve a dibujar la pantalla
     g_idle_add(safe_redraw, state->datos->area);
-    return TRUE; // continue sorting
+    delay(); // Por si se quiere apreciar más los swaps
+    return TRUE; // Se continua el sort
 }
