@@ -1,8 +1,8 @@
-all: tarea_0
+all: proyecto_1
 
-tarea_0: tarea_0.c
-	gcc -o tarea_0 tarea_0.c `pkg-config --cflags --libs gtk+-3.0 cairo` -lm
+proyecto_1: proyecto_1.c
+	gcc -o proyecto_1 proyecto_1.c `pkg-config --cflags --libs gtk+-3.0 cairo` -lm
 
 clean:
-	rm -f ./tarea_0 || true
+	rm -f ./proyecto_1 || true
 

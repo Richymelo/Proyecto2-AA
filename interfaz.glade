@@ -42,9 +42,9 @@
               <object class="GtkLabel" id="titulo">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="margin-top">50</property>
-                <property name="margin-bottom">50</property>
-                <property name="label" translatable="yes">Rayos Desordenados</property>
+                <property name="margin-top">30</property>
+                <property name="margin-bottom">20</property>
+                <property name="label" translatable="yes">Ordenando Números</property>
                 <attributes>
                   <attribute name="font-desc" value="Sans Bold 10"/>
                   <attribute name="variant" value="small-caps"/>
@@ -66,8 +66,8 @@
                   <object class="GtkLabel" id="instruccion_rayos">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="margin-top">50</property>
-                    <property name="margin-bottom">20</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
                     <property name="label" translatable="yes">Ingrese la cantidad de rayos deseada (igual o más que 4):</property>
                   </object>
                   <packing>
@@ -111,8 +111,8 @@
                   <object class="GtkLabel" id="instruccion_datos">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="margin-top">50</property>
-                    <property name="margin-bottom">20</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
                     <property name="label" translatable="yes">Ingrese la cantidad de datos deseados (igual o más que 4):</property>
                   </object>
                   <packing>
@@ -153,12 +153,12 @@
                 <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
-                  <object class="GtkLabel" id="instruccion_colores">
+                  <object class="GtkLabel" id="instruccion_orden">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="margin-top">50</property>
-                    <property name="margin-bottom">20</property>
-                    <property name="label" translatable="yes">Escoja dos colores:</property>
+                    <property name="margin-top">20</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="label" translatable="yes">Escoja el orden de los datos iniciales:</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -166,6 +166,131 @@
                     <property name="position">0</property>
                   </packing>
                 </child>
+                <child>
+                  <object class="GtkRadioButton" id="orden_ascendente">
+                    <property name="label" translatable="yes">Orden ascendente</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkRadioButton" id="orden_descendente">
+                    <property name="label" translatable="yes">Orden descendente</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                    <property name="group">orden_ascendente</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">2</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkRadioButton" id="orden_aleatorio">
+                    <property name="label" translatable="yes">Orden aleatorio</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">False</property>
+                    <property name="active">True</property>
+                    <property name="draw-indicator">True</property>
+                    <property name="group">orden_ascendente</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="boton_desplegar_nuevos">
+                <property name="label" translatable="yes">Guardar Datos Nuevos</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="margin-left">90</property>
+                <property name="margin-right">81</property>
+                <property name="margin-top">10</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">4</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkLabel" id="instruccion_algo_ordenamiento">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">20</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="label" translatable="yes">Escoja el algoritmo con el que desea ordenar los datos:</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkComboBoxText" id="lista_algos">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="active">0</property>
+                    <items>
+                      <item id="bubbleSort" translatable="yes">Bubble Sort</item>
+                      <item id="cocktailSort" translatable="yes">Cocktail Sort</item>
+                      <item id="exchangeSort" translatable="yes">Exchange Sort</item>
+                      <item id="selectionSort" translatable="yes">Selection Sort</item>
+                      <item id="insertionSort" translatable="yes">Insertion Sort</item>
+                      <item id="mergeSort" translatable="yes">Merge Sort</item>
+                      <item id="quickSort" translatable="yes">Quick Sort</item>
+                      <item id="shellSort" translatable="yes">Shell Sort</item>
+                      <item id="gnomeSort" translatable="yes">Gnome Sort</item>
+                      <item id="pancakeSort" translatable="yes">Pancake Sort</item>
+                    </items>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">1</property>
+                  </packing>
+                </child>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">5</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkBox">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkColorButton" id="color_1">
                     <property name="visible">True</property>
@@ -179,7 +304,21 @@
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">True</property>
-                    <property name="position">1</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="instruccion_colores">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="label" translatable="yes">Escoja dos colores:</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
@@ -203,24 +342,40 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="position">6</property>
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="boton_desplegar">
-                <property name="label" translatable="yes">Desplegar</property>
+              <object class="GtkButton" id="boton_desplegar_iniciales">
+                <property name="label" translatable="yes">Desplegar Datos Iniciales</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="margin-left">90</property>
                 <property name="margin-right">81</property>
-                <property name="margin-top">50</property>
+                <property name="margin-top">10</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">True</property>
+                <property name="position">7</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="boton_sort">
+                <property name="label" translatable="yes">SORT</property>
+                <property name="visible">True</property>
+                <property name="can-focus">True</property>
+                <property name="receives-default">True</property>
+                <property name="margin-left">90</property>
+                <property name="margin-right">81</property>
+                <property name="margin-top">20</property>
                 <property name="margin-bottom">20</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">True</property>
-                <property name="position">4</property>
+                <property name="position">8</property>
               </packing>
             </child>
             <child>
@@ -231,13 +386,12 @@
                 <property name="receives-default">True</property>
                 <property name="margin-left">90</property>
                 <property name="margin-right">81</property>
-                <property name="margin-top">20</property>
-                <property name="margin-bottom">50</property>
+                <property name="margin-bottom">20</property>
               </object>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
-                <property name="position">5</property>
+                <property name="position">9</property>
               </packing>
             </child>
           </object>
