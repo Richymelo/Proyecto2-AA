@@ -8,6 +8,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
+
+// --- Sort Step Function Prototypes ---
+gboolean bubble_sort_step(SortState *state);
+gboolean cocktail_sort_step(SortState *state);
+gboolean exchange_sort_step(SortState *state);
+gboolean selection_sort_step(SortState *state);
+gboolean insertion_sort_step(SortState *state);
+gboolean merge_sort_step(SortState *state);
+gboolean quick_sort_step(SortState *state);
+gboolean shell_sort_step(SortState *state);
+gboolean gnome_sort_step(SortState *state);
+gboolean pancake_sort_step(SortState *state);
+
+// --- Helper Function Prototype ---
+const char* sort_type_to_string(SortType type);
+
 
 // Función de intercambiar dos valores
 void swap(int *a, int *b) {
@@ -22,244 +39,296 @@ void area_inicial(){
     }
     g_usleep(500000);  // Delay para ver cambios
 }
-void actualizar_area(){
-    // Para poder ver el cambio en el contador de iteraciones
-    while (gtk_events_pending()) {
-        gtk_main_iteration();  // Procesar los eventos de GTK
+
+gboolean safe_redraw(gpointer data) {
+    GtkWidget *widget = GTK_WIDGET(data);
+    if (widget != NULL) {
+        gtk_widget_queue_draw(widget);
     }
-    //g_usleep(10000);  // Delay para ver cambios
+    return FALSE;  // only run once
+}
+gboolean sort_step(gpointer user_data) {
+    SortState *state = (SortState *)user_data;
+
+    if (state == NULL || state->datos == NULL) {
+        return FALSE;
+    }
+
+    gboolean still_sorting = FALSE;
+
+    switch (state->current_algorithm) {
+        case SORT_BUBBLE:
+            still_sorting = bubble_sort_step(state);
+            break;
+        case SORT_COCKTAIL:
+            still_sorting = cocktail_sort_step(state);
+            break;
+        case SORT_EXCHANGE:
+            still_sorting = exchange_sort_step(state);
+            break;
+        case SORT_SELECTION:
+            still_sorting = selection_sort_step(state);
+            break;
+        case SORT_INSERTION:
+            still_sorting = insertion_sort_step(state);
+            break;
+        case SORT_MERGE:
+            still_sorting = merge_sort_step(state);
+            break;
+        case SORT_QUICK:
+            still_sorting = quick_sort_step(state);
+            break;
+        case SORT_SHELL:
+            still_sorting = shell_sort_step(state);
+            break;
+        case SORT_GNOME:
+            still_sorting = gnome_sort_step(state);
+            break;
+        case SORT_PANCAKE:
+            still_sorting = pancake_sort_step(state);
+            break;
+    }
+
+    if (!still_sorting) {
+        // Finished sorting!
+
+        g_idle_add(safe_redraw, state->datos->area);
+
+        // Optional: show a GTK message
+        GtkWidget *dialog = gtk_message_dialog_new(NULL,
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_INFO,
+            GTK_BUTTONS_OK,
+            "¡%s terminado!", sort_type_to_string(state->current_algorithm));
+
+        gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
+
+        // Free memory
+        if (state->temp) free(state->temp);
+        if (state->stack) free(state->stack);
+        free(state);
+
+        return FALSE; // No more steps needed
+    }
+
+    return TRUE; // Continue sorting
+}
+const char* sort_type_to_string(SortType type) {
+    switch (type) {
+        case SORT_BUBBLE: return "Bubble Sort";
+        case SORT_COCKTAIL: return "Cocktail Sort";
+        case SORT_EXCHANGE: return "Exchange Sort";
+        case SORT_SELECTION: return "Selection Sort";
+        case SORT_INSERTION: return "Insertion Sort";
+        case SORT_MERGE: return "Merge Sort";
+        case SORT_QUICK: return "Quick Sort";
+        case SORT_SHELL: return "Shell Sort";
+        case SORT_GNOME: return "Gnome Sort";
+        case SORT_PANCAKE: return "Pancake Sort";
+        default: return "Unknown Sort";
+    }
 }
 // - - - - -
 // BUBBLE SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es el if, que es una probabilidad.
 // - - - - -
-void bubbleSort(int *arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean bubble_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
+    if (arr == NULL) return FALSE;
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
-
-    for (int i = 0; i < n - 1; i++) {
-        datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-        for (int j = 0; j < n - i - 1; j++) {
-            datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-            if (arr[j] < arr[j + 1]) {
-                swap(&arr[j], &arr[j + 1]);
-                
-                datos->swaps++;
-                // Después del swap dibujar otra vez el área del círculo
-                gtk_widget_queue_draw(area);
-                // Para poder ver el cambio en el contador de intercambios y los rayos
-                actualizar_area();
-            }
+    while (steps < steps_per_frame) {
+        if (state->i >= state->n - 1) {
+            return FALSE; // finished
         }
+
+        if (state->j < state->n - state->i - 1) {
+            state->datos->iterations++;
+            if (arr[state->j] < arr[state->j + 1]) {
+                swap(&arr[state->j], &arr[state->j + 1]);
+                state->datos->swaps++;
+            }
+            state->j++;
+        } else {
+            state->j = 0;
+            state->i++;
+        }
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
 // - - - - -
 // COCKTAIL SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es el if, que es una probabilidad.
 // - - - - -
-void cocktailSort(int *arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean cocktail_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
+    if (arr == NULL) return FALSE;
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
+    while (steps < steps_per_frame) {
+        if (state->start >= state->end) {
+            return FALSE; // finished
+        }
 
-    int start = 0;
-    int end = n - 1;
-
-    for (int pass = 0; pass < n - 1; pass++) {
-        datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-        for (int i = start; i < end; ++i) {
-            datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-            if (arr[i] < arr[i + 1]) {
-                swap(&arr[i], &arr[i + 1]);
-                datos->swaps++;
-                // Después del swap dibujar otra vez el área del círculo
-                gtk_widget_queue_draw(area);
-                // Para poder ver el cambio en el contador de intercambios y los rayos
-                actualizar_area();
+        if (state->phase == 0) { // Forward phase
+            if (state->i < state->end) {
+                state->datos->iterations++;
+                if (arr[state->i] < arr[state->i + 1]) {
+                    swap(&arr[state->i], &arr[state->i + 1]);
+                    state->datos->swaps++;
+                }
+                state->i++;
+            } else {
+                state->end--;
+                state->i = state->end - 1;
+                state->phase = 1; // switch to backward
+            }
+        } else { // Backward phase
+            if (state->i >= state->start) {
+                state->datos->iterations++;
+                if (arr[state->i] < arr[state->i + 1]) {
+                    swap(&arr[state->i], &arr[state->i + 1]);
+                    state->datos->swaps++;
+                }
+                state->i--;
+            } else {
+                state->start++;
+                state->i = state->start;
+                state->phase = 0; // switch to forward
             }
         }
-        --end;
-        for (int i = end - 1; i >= start; --i) {
-            datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-            if (arr[i] < arr[i + 1]) {
-                swap(&arr[i], &arr[i + 1]);
-                datos->swaps++;
-                // Después del swap dibujar otra vez el área del círculo
-                gtk_widget_queue_draw(area);
-                // Para poder ver el cambio en el contador de intercambios y los rayos
-                actualizar_area();
-            }
-        }
-        
-        ++start;
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
 // - - - - -
 // EXCHANGE SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es el if, que es una probabilidad.
 // - - - - -
-void exchangeSort(int *arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean exchange_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
+    if (arr == NULL) return FALSE;
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
-
-    for (int i = 0; i < n - 1; i++) {
-        datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-
-        for (int j = i + 1; j < n; j++) {
-            datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-            if (arr[i] < arr[j]) {  // Changed to sort in descending order
-                swap(&arr[i], &arr[j]);
-                datos->swaps++;
-                // Después del swap dibujar otra vez el área del círculo
-                gtk_widget_queue_draw(area);
-                // Para poder ver el cambio en el contador de intercambios y los rayos
-                actualizar_area();
-            }
+    while (steps < steps_per_frame) {
+        if (state->i >= state->n - 1) {
+            return FALSE; // finished
         }
+
+        if (state->j < state->n) {
+            state->datos->iterations++;
+            if (arr[state->i] < arr[state->j]) {
+                swap(&arr[state->i], &arr[state->j]);
+                state->datos->swaps++;
+            }
+            state->j++;
+        } else {
+            state->i++;
+            state->j = state->i + 1;
+        }
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
 // - - - - -
 // SELECTION SORT
 // Iteraciones es total de los dos for loops. Iteraciones = (n-1) + (n-1)*n/2
 // Intercambios es (n-1), ya que se hace solo un intercambio por número.
 // - - - - -
-void selectionSort(int *arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean selection_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
+    if (arr == NULL) return FALSE;
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
-
-    for (int i = 0; i < n - 1; ++i) {
-        int max_idx = i;  // Change min_idx to max_idx
-
-        datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-
-        for (int j = i + 1; j < n; ++j) {
-            datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-
-            if (arr[j] > arr[max_idx]) {  // Change the comparison to find the max element
-                max_idx = j;
-            }
+    while (steps < steps_per_frame) {
+        if (state->i >= state->n - 1) {
+            return FALSE; // finished
         }
-        swap(&arr[i], &arr[max_idx]);
-        datos->swaps++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de intercambios y los rayos
-        actualizar_area();
+
+        if (state->j < state->n) {
+            state->datos->iterations++;
+            if (arr[state->j] > arr[state->max_index]) { // descending order
+                state->max_index = state->j;
+            }
+            state->j++;
+        } else {
+            swap(&arr[state->i], &arr[state->max_index]);
+            state->datos->swaps++;
+
+            state->i++;
+            state->j = state->i + 1;
+            state->max_index = state->i;
+        }
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
 // - - - - -
 // INSERTION SORT
 // Iteraciones es total del for loop y el while. Iteraciones = (n-1) + intercambios.
 // Intercambios es el while, que es una probabilidad.
 // - - - - -
-void insertionSort(int *arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean insertion_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
+    if (arr == NULL) return FALSE;
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
-    
-    int i, j, temp;
-
-    for (i = 1; i < n; i++) {
-        temp = arr[i];
-        j = i - 1;
-
-        datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-
-        // Change the condition to sort in descending order
-        while (j >= 0 && arr[j] < temp) {  // arr[j] < temp to find larger elements
-            arr[j + 1] = arr[j];
-            j--;
-
-            datos->iterations++;
-            datos->swaps++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de intercambios y los rayos
-            actualizar_area();
+    while (steps < steps_per_frame) {
+        if (state->i >= state->n) {
+            return FALSE; // finished
         }
-        arr[j + 1] = temp;
+
+        if (state->phase == 0) {
+            // Start insertion
+            state->max_index = arr[state->i];
+            state->j = state->i - 1;
+            state->phase = 1;
+        } else if (state->phase == 1) {
+            // Move backwards
+            if (state->j >= 0 && arr[state->j] < state->max_index) {
+                arr[state->j + 1] = arr[state->j];
+                state->datos->iterations++;
+                state->datos->swaps++;
+                state->j--;
+            } else {
+                arr[state->j + 1] = state->max_index;
+                state->i++;
+                state->phase = 0;
+            }
+        }
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
 // - - - - -
 // MERGE SORT
@@ -267,298 +336,267 @@ void insertionSort(int *arr, int n, gpointer user_data) {
 // Total = for loops para copiar datos + whiles para combinar los arreglos
 // Intercambios es el if, que es una probabilidad.
 // - - - - -
-void merge(int* arr, int l, int m, int r, int* temp, gpointer user_data) {
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean merge_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 300;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
+    if (arr == NULL) return FALSE;
 
-    int i = l;      
-    int j = m + 1;  
-    int k = l;      
+    // Initialize temp array if not yet done
+    if (state->temp == NULL) {
+        state->temp = malloc(sizeof(int) * state->n);
+        if (!state->temp) {
+            printf("Error allocating temp array for merge sort\n");
+            return FALSE;
+        }
+        // Start merging subarrays of size 1
+        state->gap = 1;
+    }
 
-    while (i <= m && j <= r) {
-        datos->iterations++;
-        
-        if (arr[i] >= arr[j]) {
-            temp[k++] = arr[i++];
-        } else {
-            temp[k++] = arr[j++];
+    while (steps < steps_per_frame) {
+        if (state->gap >= state->n) {
+            // Finished merging all
+            return FALSE;
         }
 
-        gtk_widget_queue_draw(area);
-        actualizar_area();
-        datos->swaps++;
+        if (state->low >= state->n - 1) {
+            // Finished one full pass for current gap size
+            state->gap *= 2;
+            state->low = 0;
+        } else {
+            int mid = MIN(state->low + state->gap - 1, state->n - 1);
+            int high = MIN(state->low + 2 * state->gap - 1, state->n - 1);
+
+            // Merge arr[low..mid] and arr[mid+1..high] into temp
+            int i = state->low, j = mid + 1, k = state->low;
+            while (i <= mid && j <= high) {
+                state->datos->iterations++;
+                if (arr[i] >= arr[j]) {
+                    state->temp[k++] = arr[i++];
+                } else {
+                    state->temp[k++] = arr[j++];
+                }
+            }
+            while (i <= mid) {
+                state->datos->iterations++;
+                state->temp[k++] = arr[i++];
+            }
+            while (j <= high) {
+                state->datos->iterations++;
+                state->temp[k++] = arr[j++];
+            }
+
+            // Copy back into arr
+            for (i = state->low; i <= high; i++) {
+                arr[i] = state->temp[i];
+                state->datos->swaps++;
+            }
+            g_idle_add(safe_redraw, state->datos->area);
+
+            state->low += 2 * state->gap;
+        }
+
+        steps++;
     }
 
-    while (i <= m) {
-        datos->iterations++;
-        temp[k++] = arr[i++];
-
-        gtk_widget_queue_draw(area);
-        actualizar_area();
-    }
-
-    while (j <= r) {
-        datos->iterations++;
-        temp[k++] = arr[j++];
-
-        gtk_widget_queue_draw(area);
-        actualizar_area();
-    }
-
-    // NOW copy temp back into arr safely
-    for (i = l; i <= r; i++) {
-        arr[i] = temp[i];
-    }
-
-    // (Optional: you can draw once more here if you want after copy)
-    gtk_widget_queue_draw(area);
-    actualizar_area();
-}
-
-void mergeSortHelper(int* arr, int l, int r, int* temp, gpointer user_data) {
-    if (l >= r) return;
-
-    int m = l + (r - l) / 2;
-    mergeSortHelper(arr, l, m, temp, user_data);
-    mergeSortHelper(arr, m + 1, r, temp, user_data);
-    merge(arr, l, m, r, temp, user_data);
-}
-
-void mergeSort(int* arr, int n, gpointer user_data) {
-    if (n <= 1) return;
-
-    // Allocate temp array ONCE
-    int temp[n];
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
-    // Para poder ver el cambio en el circulo
-    area_inicial();
-    mergeSortHelper(arr, 0, n - 1, temp, user_data);
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE;
 }
 // - - - - -
 // QUICK SORT
 // Iteraciones es total de los for loops y whiles.
 // Intercambios es el if, que es una probabilidad.
 // - - - - -
-int partition(int* arr, int *p, gpointer user_data, int low, int high) {
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean quick_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 300;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
+    if (arr == NULL) return FALSE;
 
-    int i, j;
-    int pivot_item = arr[low];
-    j = low;
-
-    for (i = low + 1; i <= high; i++) {
-        datos->iterations++;
-
-        if (arr[i] > pivot_item) {
-            j++;
-            swap(&arr[i], &arr[j]);
-            datos->swaps++;
-
-            // Only update area after a swap
-            gtk_widget_queue_draw(area);
-            actualizar_area();
+    // Initialize stack if needed
+    if (state->stack == NULL) {
+        state->stack = malloc(sizeof(int) * 2 * state->n); // (low, high) pairs
+        if (!state->stack) {
+            printf("Error allocating stack for quicksort\n");
+            return FALSE;
         }
-    }
-    *p = j;
-    swap(&arr[low], &arr[*p]);
-    datos->swaps++;
+        state->top = -1;
 
-    gtk_widget_queue_draw(area);
-    actualizar_area();
+        // Push full array onto stack
+        state->stack[++state->top] = 0;       // low
+        state->stack[++state->top] = state->n - 1; // high
+    }
+
+    while (steps < steps_per_frame) {
+        if (state->top < 0) {
+            return FALSE; // Stack empty => finished
+        }
+
+        // Pop high and low
+        int high = state->stack[state->top--];
+        int low = state->stack[state->top--];
+
+        if (low < high) {
+            int pivot = arr[low];
+            int i = low;
+
+            for (int j = low + 1; j <= high; j++) {
+                state->datos->iterations++;
+                if (arr[j] > pivot) { // Descending
+                    i++;
+                    swap(&arr[i], &arr[j]);
+                    state->datos->swaps++;
+                }
+            }
+            swap(&arr[low], &arr[i]);
+            state->datos->swaps++;
+
+            // Push right subarray
+            state->stack[++state->top] = i + 1;
+            state->stack[++state->top] = high;
+
+            // Push left subarray
+            state->stack[++state->top] = low;
+            state->stack[++state->top] = i - 1;
+        }
+
+        steps++;
+    }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE;
 }
 
-void quickSort(int* arr, gpointer user_data, int low, int high) {
-    
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-
-    if (low < high) {
-        int pivot;
-        partition(arr, &pivot, user_data, low, high);
-        // Llamadas recursivas con nuevos arreglos
-        quickSort(arr, user_data, low, pivot - 1);
-        quickSort(arr, user_data, pivot + 1, high);
-    }
-}
 // - - - - -
 // SHELL SORT
 // Iteraciones es total de los for loops.
 // Intercambios están en el tercer for loop.
 // - - - - -
-void shellSort(int* arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean shell_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
+    if (arr == NULL) return FALSE;
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
+    while (steps < steps_per_frame) {
+        if (state->gap == 0) {
+            return FALSE; // finished
+        }
 
-    for (int gap = n / 2; gap > 0; gap /= 2) {
-        
-        datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
+        if (state->i < state->n) {
+            int temp = arr[state->i];
+            int j = state->i;
 
-        for (int i = gap; i < n; i++) {
-            int temp = arr[i];
-            int j;
-
-            datos->iterations++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
-
-            for (j = i; j >= gap && arr[j - gap] < temp; j -= gap) {
-                arr[j] = arr[j - gap];
-
-                datos->iterations++;
-                datos->swaps++;
-                // Después del swap dibujar otra vez el área del círculo
-                gtk_widget_queue_draw(area);
-                // Para poder ver el cambio en el contador de iteraciones
-                actualizar_area();
+            while (j >= state->gap && arr[j - state->gap] < temp) { // descending
+                arr[j] = arr[j - state->gap];
+                j -= state->gap;
+                state->datos->iterations++;
+                state->datos->swaps++;
             }
             arr[j] = temp;
+
+            state->i++;
+        } else {
+            state->gap /= 2;
+            state->i = state->gap;
         }
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
 // - - - - -
 // GNOME SORT
 // Iteraciones es el loop del while.
 // Intercambios son un if, entonces es una probabilidad.
 // - - - - -
-void gnomeSort(int* arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+gboolean gnome_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
+    if (arr == NULL) return FALSE;
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
-
-    int index = 0;
-
-    while (index < n) {
-        datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-
-        if (index == 0)
-            index++;
-        if (arr[index] <= arr[index - 1])
-            index++;
-        else {
-            swap(&arr[index], &arr[index - 1]);
-            index--;
-
-            datos->swaps++;
-            // Después del swap dibujar otra vez el área del círculo
-            gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de iteraciones
-            actualizar_area();
+    while (steps < steps_per_frame) {
+        if (state->index >= state->n) {
+            return FALSE; // finished
         }
+
+        if (state->index == 0) {
+            state->index++;
+        } else if (arr[state->index] <= arr[state->index - 1]) {
+            state->index++;
+        } else {
+            swap(&arr[state->index], &arr[state->index - 1]);
+            state->datos->swaps++;
+            state->datos->iterations++;
+            state->index--;
+        }
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
 // - - - - -
 // PANCAKE SORT
 // Iteraciones son los for loops y el loop del while.
 // Intercambios están en la función flip.
 // - - - - -
-void flip(int* arr, int i, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
-
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-
-    int temp = 0;
+void flip_array(int *arr, int idx, DatosUsuario *datos) {
     int start = datos->k - 1;
-    while (start > i) {
-        temp = arr[i];
-        arr[i] = arr[start];
+    int temp;
+    while (start > idx) {
+        temp = arr[idx];
+        arr[idx] = arr[start];
         arr[start] = temp;
         start--;
-        i++;
-
+        idx++;
         datos->iterations++;
         datos->swaps++;
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
     }
 }
+gboolean pancake_sort_step(SortState *state) {
+    int *arr = state->datos->usar_copia ? state->datos->copia_datos : state->datos->D;
+    int steps = 0;
+    int steps_per_frame = 1;
 
-int findMax(int* arr, int current, int size, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
+    if (arr == NULL) return FALSE;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    
-    int max_index = current;
-    for (int i = current; i < size; i++) {
-        datos->iterations++;
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-        
-        if (arr[i] > arr[max_index]) {
-            max_index = i;
+    while (steps < steps_per_frame) {
+        if (state->i >= state->n) {
+            return FALSE; // finished
         }
-    }
-    return max_index;
-}
 
-void pancakeSort(int* arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
-
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
-    // Para poder ver el cambio en el contador de iteraciones
-    area_inicial();
-
-    for (int i = 0; i < n; i++) {
-        datos->iterations++;
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-
-        int max_index = findMax(arr, i, n, user_data);
-
-        if (max_index != i) {
-            // Llevar el elemento más grande hacia el final
-            flip(arr, max_index, user_data);
-            // Mover el elemento más grande hacia el frente, invirtiendo el arreglo
-            flip(arr, i, user_data);
+        if (state->phase == 0) {
+            // Find the max index in the current subarray
+            state->max_index = state->i;
+            for (int j = state->i; j < state->n; j++) {
+                state->datos->iterations++;
+                if (arr[j] > arr[state->max_index]) {
+                    state->max_index = j;
+                }
+            }
+            state->phase = 1;
+        } else if (state->phase == 1) {
+            // Bring max to end
+            if (state->max_index != state->i) {
+                flip_array(arr, state->max_index, state->datos);
+                flip_array(arr, state->i, state->datos);
+            }
+            state->i++;
+            state->phase = 0;
         }
+
+        steps++;
     }
+
+    g_idle_add(safe_redraw, state->datos->area);
+    return TRUE; // continue sorting
 }
