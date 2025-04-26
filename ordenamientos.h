@@ -27,7 +27,7 @@ void actualizar_area(){
     while (gtk_events_pending()) {
         gtk_main_iteration();  // Procesar los eventos de GTK
     }
-    //g_usleep(400000);   // Delay para ver cambios
+    //g_usleep(10000);  // Delay para ver cambios
 }
 // - - - - -
 // BUBBLE SORT
@@ -267,113 +267,79 @@ void insertionSort(int *arr, int n, gpointer user_data) {
 // Total = for loops para copiar datos + whiles para combinar los arreglos
 // Intercambios es el if, que es una probabilidad.
 // - - - - -
-void merge(int* L, int n1, int* R, int n2, int* S, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
+void merge(int* arr, int l, int m, int r, int* temp, gpointer user_data) {
     DatosGenerales *general = (DatosGenerales *)user_data;
     GtkBuilder *builder = general->builder;
     DatosUsuario *datos = general->datos;
 
     GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
 
-    int i = 0, j = 0, k = 0;
+    int i = l;      
+    int j = m + 1;  
+    int k = l;      
 
-    // Combinar L y R en S en orden descendente
-    while (i < n1 && j < n2) {
+    while (i <= m && j <= r) {
         datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-        if (L[i] >= R[j]) {
-            S[k++] = L[i++];
+        
+        if (arr[i] >= arr[j]) {
+            temp[k++] = arr[i++];
         } else {
-            S[k++] = R[j++];
+            temp[k++] = arr[j++];
         }
+
+        gtk_widget_queue_draw(area);
+        actualizar_area();
         datos->swaps++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de intercambios y los rayos
-        actualizar_area();
     }
 
-    // Copiar elementos que quedan de L
-    while (i < n1) {
+    while (i <= m) {
         datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
+        temp[k++] = arr[i++];
 
-        S[k++] = L[i++];
+        gtk_widget_queue_draw(area);
+        actualizar_area();
     }
-    // Copiar elementos que quedan de R
-    while (j < n2) {
+
+    while (j <= r) {
         datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
+        temp[k++] = arr[j++];
+
         gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
         actualizar_area();
-
-        S[k++] = R[j++];
     }
-}
-void mergeSort(int* arr, int n, gpointer user_data) {
-    // Para poder acceder a los datos de la interfaz y del usuario
-    DatosGenerales *general = (DatosGenerales *)user_data;
-    GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
 
-    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
+    // NOW copy temp back into arr safely
+    for (i = l; i <= r; i++) {
+        arr[i] = temp[i];
+    }
+
+    // (Optional: you can draw once more here if you want after copy)
     gtk_widget_queue_draw(area);
+    actualizar_area();
+}
 
-    // Para poder ver el cambio en el circulo
-    area_inicial();
+void mergeSortHelper(int* arr, int l, int r, int* temp, gpointer user_data) {
+    if (l >= r) return;
 
-    // Si el tamaño del arreglo es menor o igual a 1
+    int m = l + (r - l) / 2;
+    mergeSortHelper(arr, l, m, temp, user_data);
+    mergeSortHelper(arr, m + 1, r, temp, user_data);
+    merge(arr, l, m, r, temp, user_data);
+}
+
+void mergeSort(int* arr, int n, gpointer user_data) {
     if (n <= 1) return;
 
-    // Tamaño de los arreglos L y R
-    int n1 = n / 2;
-    int n2 = n - n1;
-
-    int* L = (int*)malloc(n1 * sizeof(int));
-    int* R = (int*)malloc(n2 * sizeof(int));
-
-    if (!L || !R) {
-        g_warning("No se pudo crear memoria para R y L en el merge sort.");
-        return;
-    }
-
-    // Copiar números en L y R
-    for (int i = 0; i < n1; ++i){
-        L[i] = arr[i];
-        
-        datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-    }
-    for (int i = 0; i < n2; ++i){
-        R[i] = arr[n1 + i];
-
-        datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
-    }
-
-    // Llamadas recursivas
-    mergeSort(L, n1, user_data);
-    mergeSort(R, n2, user_data);
-
-    // Llamar a la función merge para ordenar a L y R
-    merge(L, n1, R, n2, arr, user_data);
-
-    // Soltar la memoria de L y R
-    free(L);
-    free(R);
+    // Allocate temp array ONCE
+    int temp[n];
+    // Para poder acceder a los datos de la interfaz y del usuario
+    DatosGenerales *general = (DatosGenerales *)user_data;
+    GtkBuilder *builder = general->builder;
+    GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
+    gtk_widget_queue_draw(area);
+    // Para poder ver el cambio en el circulo
+    area_inicial();
+    mergeSortHelper(arr, 0, n - 1, temp, user_data);
 }
 // - - - - -
 // QUICK SORT
@@ -381,62 +347,45 @@ void mergeSort(int* arr, int n, gpointer user_data) {
 // Intercambios es el if, que es una probabilidad.
 // - - - - -
 int partition(int* arr, int *p, gpointer user_data, int low, int high) {
-    // Para poder acceder a los datos de la interfaz y del usuario
     DatosGenerales *general = (DatosGenerales *)user_data;
     GtkBuilder *builder = general->builder;
     DatosUsuario *datos = general->datos;
 
     GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
 
-    int i,j;
-    // Se escoge el pivote
+    int i, j;
     int pivot_item = arr[low];
     j = low;
 
-    // Crear arreglos con valores menores y mayores que el pivote
-    for ( i = low + 1; i<= high; i++) {
-        
+    for (i = low + 1; i <= high; i++) {
         datos->iterations++;
-        // Después del swap dibujar otra vez el área del círculo
-        gtk_widget_queue_draw(area);
-        // Para poder ver el cambio en el contador de iteraciones
-        actualizar_area();
 
         if (arr[i] > pivot_item) {
             j++;
             swap(&arr[i], &arr[j]);
-            
             datos->swaps++;
-            // Después del swap dibujar otra vez el área del círculo
+
+            // Only update area after a swap
             gtk_widget_queue_draw(area);
-            // Para poder ver el cambio en el contador de intercambios y los rayos
             actualizar_area();
         }
     }
     *p = j;
     swap(&arr[low], &arr[*p]);
-    
     datos->swaps++;
-    // Después del swap dibujar otra vez el área del círculo
+
     gtk_widget_queue_draw(area);
-    // Para poder ver el cambio en el contador de intercambios y los rayos
     actualizar_area();
 }
 
 void quickSort(int* arr, gpointer user_data, int low, int high) {
-    // Para poder acceder a los datos de la interfaz y del usuario
+    
     DatosGenerales *general = (DatosGenerales *)user_data;
     GtkBuilder *builder = general->builder;
-    DatosUsuario *datos = general->datos;
-
     GtkWidget *area = GTK_WIDGET(gtk_builder_get_object(builder, "area_circulo"));
-    gtk_widget_queue_draw(area);
-    // Para poder ver el cambio en el circulo
-    area_inicial();
 
-    int pivot;
     if (low < high) {
-        // Se divide el arreglo
+        int pivot;
         partition(arr, &pivot, user_data, low, high);
         // Llamadas recursivas con nuevos arreglos
         quickSort(arr, user_data, low, pivot - 1);
