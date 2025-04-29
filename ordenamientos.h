@@ -33,6 +33,9 @@ void swap(int *a, int *b) {
 void delay(){
     //g_usleep(1);  // Delay para ver cambios
 }
+int steps_frame(){
+    return 1;
+}
 // Pedirle a GTK que vuelva a dibujar el círculo
 gboolean safe_redraw(gpointer data) {
     GtkWidget *widget = GTK_WIDGET(data);
@@ -89,14 +92,14 @@ gboolean sort_step(gpointer user_data) {
         g_idle_add(safe_redraw, state->datos->area);
 
         // Se menciona el sort que acaba de terminar
-        GtkWidget *dialog = gtk_message_dialog_new(NULL,
+        /*GtkWidget *dialog = gtk_message_dialog_new(NULL,
             GTK_DIALOG_MODAL,
             GTK_MESSAGE_INFO,
             GTK_BUTTONS_OK,
             "¡%s terminado!", sort_type_to_string(state->current_algorithm));
 
         gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
+        gtk_widget_destroy(dialog);*/
 
         // Se libera la memoria
         if (state->temp) free(state->temp);
@@ -136,7 +139,7 @@ gboolean bubble_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
@@ -180,7 +183,7 @@ gboolean cocktail_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
@@ -242,7 +245,7 @@ gboolean exchange_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
@@ -285,7 +288,7 @@ gboolean selection_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
@@ -334,7 +337,7 @@ gboolean insertion_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
@@ -385,7 +388,7 @@ gboolean merge_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Se inicializa el arreglo temporal
@@ -468,7 +471,7 @@ gboolean quick_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Se inicializa el stack
@@ -544,7 +547,7 @@ gboolean shell_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
@@ -596,7 +599,7 @@ gboolean gnome_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar
@@ -656,7 +659,7 @@ gboolean pancake_sort_step(SortState *state) {
     // Cantidad de pasos que se han hecho
     int steps = 0;
     // Cantidad de pasos necesarios antes de refrescar la pantalla
-    int steps_per_frame = 1;
+    int steps_per_frame = steps_frame();
     // Por si no hay nada en el arreglo
     if (arr == NULL) return FALSE;
     // Mientras la cantidad de pasos sea menor que las necesarias para refrescar

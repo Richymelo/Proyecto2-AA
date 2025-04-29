@@ -355,13 +355,13 @@ gboolean dibujar_area(GtkWidget *area, cairo_t *cr, gpointer user_data) {
     // Dibujar contador de iteración
     char iteration_text[50];
     snprintf(iteration_text, sizeof(iteration_text), "Iteraciones: %d", datos->iterations);
-    cairo_move_to(cr, width - 100, height - 20);
+    cairo_move_to(cr, width - 112, height - 15);
     cairo_show_text(cr, iteration_text);
 
     // Dibujar contador de intercambios
     char swap_text[50];
     snprintf(swap_text, sizeof(swap_text), "Intercambios: %d", datos->swaps);
-    cairo_move_to(cr, width - 100, height - 10);
+    cairo_move_to(cr, width - 112, height - 5);
     cairo_show_text(cr, swap_text);
 
     return FALSE;
