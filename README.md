@@ -6,7 +6,7 @@ Se ejecutarán **cuatro algoritmos de ordenamiento en paralelo**, cada uno en su
 
 ---
 
-## ⚙️ Funcionalidades
+## Funcionalidades
 - **Ejecución simultánea** de cuatro algoritmos de ordenamiento sobre los mismos datos iniciales.
 - Cada algoritmo tiene su propio **disco visual** donde se ve su progreso.
 - Cada algoritmo muestra de manera **independiente**:
@@ -18,7 +18,7 @@ Se ejecutarán **cuatro algoritmos de ordenamiento en paralelo**, cada uno en su
 
 ---
 
-## 🧠 Algoritmos de Ordenamiento Disponibles
+## Algoritmos de Ordenamiento Disponibles
 - **Bubble Sort**
 - **Cocktail Sort**
 - **Exchange Sort**
